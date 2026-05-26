@@ -1,0 +1,17 @@
+﻿name: bci-enginex
+
+services:
+  enginex:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: bci-enginex:latest
+    container_name: bci-enginex
+    ports:
+      - "80:80"
+    networks:
+      - bci-net
+
+networks:
+  bci-net:
+    external: true

@@ -1,6 +1,6 @@
-﻿# BCI Enginex
+# BCI Nginx
 
-BCI Enginex is the Podman-managed Nginx deployment host for the Bicycle Cloud Intelligence orchestration layer. It is the public entry point for web traffic and uses Nginx `auth_request` to authorize requests through the Security Module before proxying them to the Query Engine.
+BCI Nginx is the Podman-managed Nginx deployment host for the Bicycle Cloud Intelligence orchestration layer. It is the public entry point for web traffic and uses Nginx `auth_request` to authorize requests through the Security Module before proxying them to the Query Engine.
 
 ## Responsibilities
 
@@ -33,13 +33,13 @@ podman network create bci-net
 ## Build
 
 ```sh
-podman build -f Containerfile -t bci-enginex:latest .
+podman build -f Containerfile -t bci-nginx:latest .
 ```
 
 ## Run With Podman
 
 ```sh
-podman run -d --name bci-enginex --network bci-net -p 80:80 bci-enginex:latest
+podman run -d --name bci-nginx --network bci-net -p 80:80 bci-nginx:latest
 ```
 
 ## Run With Podman Compose
@@ -57,4 +57,5 @@ The upstream services must be reachable on the same Podman network using these n
 
 - `Containerfile`: container build instructions
 - `nginx.conf`: Nginx reverse proxy and `auth_request` configuration
-- `podman-compose.yml`: Podman Compose definition for the Enginex container
+- `podman-compose.yml`: Podman Compose definition for the Nginx container
+

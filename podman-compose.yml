@@ -1,12 +1,12 @@
-﻿name: bci-enginex
+name: bci-nginx
 
 services:
-  enginex:
+  nginx:
     build:
       context: .
       dockerfile: Containerfile
-    image: bci-enginex:latest
-    container_name: bci-enginex
+    image: bci-nginx:latest
+    container_name: bci-nginx
     ports:
       - "80:80"
     networks:
@@ -15,3 +15,4 @@ services:
 networks:
   bci-net:
     external: true
+

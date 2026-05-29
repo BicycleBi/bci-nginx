@@ -1,0 +1,23 @@
+name: bci-nginx
+
+services:
+  nginx:
+    build:
+      context: .
+    image: bci-nginx:latest
+    environment:
+      SECURITY_UPSTREAM_HOST: "${SECURITY_UPSTREAM_HOST:-security}"
+      SECURITY_UPSTREAM_PORT: "${SECURITY_UPSTREAM_PORT:-8400}"
+      QUERY_ENGINE_UPSTREAM_HOST: "${QUERY_ENGINE_UPSTREAM_HOST:-query-engine}"
+      QUERY_ENGINE_UPSTREAM_PORT: "${QUERY_ENGINE_UPSTREAM_PORT:-8300}"
+    ports:
+      - "${CLIENT_WEB_BIND:-127.0.0.1:18443}:443"
+    volumes:
+      - "${CLIENT_TLS_CERT_PATH:-./dev/tls/tls.crt}:/etc/nginx/tls/tls.crt:ro"
+      - "${CLIENT_TLS_KEY_PATH:-./dev/tls/tls.key}:/etc/nginx/tls/tls.key:ro"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge

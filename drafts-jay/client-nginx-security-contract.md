@@ -1,6 +1,6 @@
 # Client Nginx Update Handoff
 
-Status: Draft for implementation handoff  
+Status: Implemented in `bci-nginx`; orchestration follow-up pending  
 Repository: `bci-nginx`  
 Related source-of-truth repo: `bci-container-orch`
 
@@ -41,10 +41,11 @@ host's public `443`. For a multi-client shared host, it should usually bind to a
 unique localhost port, for example `127.0.0.1:18443:443`, and the shared ingress
 routes to it.
 
-## Current Gaps
+## Original Implementation Gaps
 
-The current repo is a useful `auth_request` sketch, but it does not match the
-current orchestration design.
+The original repo was a useful `auth_request` sketch, but it did not match the
+current orchestration design. The `bci-nginx` repo now implements the Nginx-side
+changes below; the related `bci-container-orch` work remains separate.
 
 Required corrections:
 
@@ -440,24 +441,26 @@ POSTGRES_PASSWORD=<client-specific-postgres-password>
 BCI_REPO_ROOT=/shared/home
 ```
 
-## Required Code Changes In This Repo
+## Implemented Code Changes In This Repo
 
-1. Rename or replace `podman-compose.yml` with Docker Compose wiring.
-2. Rename `Containerfile` to `Dockerfile`, or keep only if compose explicitly
-   references it. Prefer `Dockerfile`.
-3. Change the Nginx listener from `80` to `443 ssl`.
-4. Change Query Engine upstream from `query-engine:8080` to
+1. Replaced `podman-compose.yml` with Docker Compose wiring.
+2. Replaced `Containerfile` with `Dockerfile`.
+3. Changed the Nginx listener from `80` to `443 ssl`.
+4. Changed Query Engine upstream from `query-engine:8080` to
    `query-engine:8300`.
-5. Change Security upstream from hard-coded `security:8081` to a templated
+5. Changed Security upstream from hard-coded `security:8081` to a templated
    default, proposed `security:8400`.
-6. Remove the dependency on an external `bci-net`.
-7. Add Nginx config templating for upstream host/port values.
-8. Add certificate/key mount expectations.
-9. Keep `/healthz` unauthenticated.
-10. Add `/login`, `/auth/callback`, and logout route pass-throughs to Security.
-11. Ensure `401` redirect target comes from Security's `Location` header.
-12. Forward only the internal BCI JWT to Query Engine, not Entra tokens.
-13. Update README to explain client-stack role and Docker usage.
+6. Removed the dependency on an external `bci-net`.
+7. Added Nginx config templating for upstream host/port values.
+8. Added certificate/key mount expectations.
+9. Kept `/healthz` unauthenticated.
+10. Added `/login`, `/auth/callback`, and logout route pass-throughs to
+    Security.
+11. Ensured `401` redirect target comes from Security's `Location` header, with
+    `/login` as a fallback if Security omits the header.
+12. Forwarded only the internal BCI JWT returned by Security to Query Engine,
+    not incoming Entra tokens.
+13. Updated README to explain client-stack role and Docker usage.
 
 ## Required Changes In Orchestration Repo
 

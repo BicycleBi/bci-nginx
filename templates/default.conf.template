@@ -1,0 +1,126 @@
+upstream query_engine {
+    server ${QUERY_ENGINE_UPSTREAM_HOST}:${QUERY_ENGINE_UPSTREAM_PORT};
+}
+
+upstream security_service {
+    server ${SECURITY_UPSTREAM_HOST}:${SECURITY_UPSTREAM_PORT};
+}
+
+map $auth_redirect $login_redirect {
+    default $auth_redirect;
+    ""      /login;
+}
+
+server {
+    listen 443 ssl;
+    server_name _;
+
+    ssl_certificate /etc/nginx/tls/tls.crt;
+    ssl_certificate_key /etc/nginx/tls/tls.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 'ok';
+    }
+
+    location = /login {
+        proxy_pass http://security_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+    }
+
+    location = /auth/callback {
+        proxy_pass http://security_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+    }
+
+    location = /logout {
+        proxy_pass http://security_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+    }
+
+    location = /auth/logout {
+        proxy_pass http://security_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+    }
+
+    location / {
+        auth_request /_auth;
+        auth_request_set $auth_redirect $upstream_http_location;
+        auth_request_set $identity_token $upstream_http_authorization;
+        auth_request_set $identity_user_id $upstream_http_x_identity_user_id;
+        auth_request_set $identity_email $upstream_http_x_identity_email;
+        auth_request_set $identity_name $upstream_http_x_identity_name;
+        auth_request_set $identity_roles $upstream_http_x_identity_roles;
+        auth_request_set $identity_client_key $upstream_http_x_identity_client_key;
+        auth_request_set $identity_tenant_id $upstream_http_x_identity_tenant_id;
+        auth_request_set $identity_scopes $upstream_http_x_identity_scopes;
+        auth_request_set $auth_expires_at $upstream_http_x_auth_expires_at;
+
+        proxy_pass http://query_engine;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header Authorization $identity_token;
+        proxy_set_header X-Identity-User-Id $identity_user_id;
+        proxy_set_header X-Identity-Email $identity_email;
+        proxy_set_header X-Identity-Name $identity_name;
+        proxy_set_header X-Identity-Roles $identity_roles;
+        proxy_set_header X-Identity-Client-Key $identity_client_key;
+        proxy_set_header X-Identity-Tenant-Id $identity_tenant_id;
+        proxy_set_header X-Identity-Scopes $identity_scopes;
+        proxy_set_header X-Auth-Expires-At $auth_expires_at;
+    }
+
+    location = /_auth {
+        internal;
+        proxy_pass http://security_service/auth;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Original-Method $request_method;
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header X-Original-Host $host;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header Cookie $http_cookie;
+    }
+
+    error_page 401 = @error401;
+    error_page 403 = @error403;
+
+    location @error401 {
+        return 302 $login_redirect;
+    }
+
+    location @error403 {
+        default_type text/html;
+        return 403 '<!doctype html><html><head><title>Forbidden</title></head><body><h1>Forbidden</h1><p>You do not have access to this resource.</p></body></html>';
+    }
+}
